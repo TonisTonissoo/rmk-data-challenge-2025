@@ -1,6 +1,6 @@
 # RMK Data Challenge 2025 — Late Probability Simulation
 
-This project simulates the probability of being late to a 9:05 AM meeting when commuting by bus (Line 8, Zoo → Toompark) using real GTFS data from [Peatus.ee](https://peatus.ee/).
+This project simulates the probability of being late to a 9:05 AM meeting when commuting by bus (Line 8, Zoo → Toompark) using real GTFS data from [Peatus.ee](https://peatus.ee/gtfs).
 
 ---
 
