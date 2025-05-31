@@ -60,7 +60,8 @@ def main():
 
     # 5. Plot results
     plot_late_probabilities(
-        csv_path,
+        leave_times,
+        P_of_being_late,
         save_path=os.path.join(output_dir, "late_probability_plot.png")
     )
 
