@@ -1,18 +1,78 @@
-# Ignore Python virtual environment
+# Python virtual environment
 venv/
+ENV/
+env/
+.venv/
+env.bak/
+venv.bak/
 
-# Byte-compiled / optimized / DLL files
+# Python cache
 __pycache__/
 *.py[cod]
 *.so
+*.pyd
+*.pyo
 
-# Jupyter notebook checkpoints
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter notebooks
 .ipynb_checkpoints/
 
-# VS Code settings
+# PyCharm
+.idea/
+
+# VS Code
 .vscode/
 
-# Data output
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Logs and temp
+*.log
+*.tmp
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Project-specific: generated files and data
+bus_data.zip
+bus_data/
+data/processed/
 *.csv
 *.png
-data/processed/
+
+# Ignore secrets or credentials if added
+.env
+.env.*

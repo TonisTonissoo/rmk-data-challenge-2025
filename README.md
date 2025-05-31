@@ -89,5 +89,3 @@ Defaults in `main.py`:
 - Walk from bus to meeting: 240 seconds (4 minutes)
 
 These can be customized by changing function arguments in the script.
-
----
