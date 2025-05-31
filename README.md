@@ -90,13 +90,3 @@ Defaults in `main.py`:
 These can be customized by changing function arguments in the script.
 
 ---
-
-## Testing
-
-To run unit tests:
-
-```bash
-pytest tests/
-```
-
----
