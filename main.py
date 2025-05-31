@@ -1,49 +1,52 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
 from src.simulate import calculate_late_probability
 from src.plot_results import plot_late_probabilities
 from src.load_gtfs_schedule import load_line8_zoo_to_toompark_schedule
+import os
 
 def main():
-    # 1. Load real bus schedule from GTFS (Zoo → Toompark, line 8)
+    # 1. Load bus schedule from GTFS (Zoo → Toompark, line 8)
     print("Loading GTFS schedule for bus line 8 Zoo → Toompark...")
     bus_schedule = load_line8_zoo_to_toompark_schedule()
-    print(f"Using {len(bus_schedule)} GTFS-based departure times.")
 
-    # 2. Create departure time range from 08:00 to 08:45
-    departure_times = []
-    start_time = datetime.strptime("08:00", "%H:%M")
-    end_time = datetime.strptime("08:45", "%H:%M")
-    current = start_time
+    if not bus_schedule:
+        print("No valid trips found. Exiting.")
+        return
 
-    while current <= end_time:
-        departure_times.append(current.strftime("%H:%M"))
-        current += timedelta(minutes=1)
+    print(f"Using {len(bus_schedule)} GTFS-based departure times.\n")
 
-    # 3. Run lateness simulations
-    results = []
-    print("Running simulations...")
-    for time_str in departure_times:
-        probability = calculate_late_probability(
-            departure_time_str=time_str,
-            bus_schedule=bus_schedule,
-            n_simulations=1000
-        )
-        results.append({
-            "departure_time": time_str,
-            "late_probability": probability
-        })
-        print(f"Departure {time_str} → Late probability: {probability:.2%}")
+    # 2. Calculate lateness probability curve
+    leave_times, P_of_being_late = calculate_late_probability(
+        bus_times=bus_schedule,
+        walk_to_bus=300,
+        walk_to_work=240,
+        meeting_time="09:05:00"
+    )
 
-    # 4. Save results
-    df = pd.DataFrame(results)
-    df.to_csv("data/processed/late_probabilities.csv", index=False)
-    print("\nResults saved to data/processed/late_probabilities.csv.")
+    # 3. Save results
+    output_dir = "data/processed"
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, "late_probabilities.csv")
+
+    df = pd.DataFrame({
+        "departure_time": leave_times,
+        "late_probability": P_of_being_late
+    })
+    df.to_csv(csv_path, index=False)
+    print(f"Results saved to {csv_path}.\n")
+
+    # 4. Print short overview
+    print("Bus schedule overview (first 5 entries):")
+    for dep, arr in bus_schedule[:5]:
+        print(f"Dep: {dep} → Arr: {arr}")
+    if len(bus_schedule) > 5:
+        print("...")
 
     # 5. Plot results
     plot_late_probabilities(
-        "data/processed/late_probabilities.csv",
-        save_path="data/processed/late_probability_plot.png"
+        csv_path,
+        save_path=os.path.join(output_dir, "late_probability_plot.png")
     )
 
 if __name__ == "__main__":

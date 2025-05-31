@@ -1,88 +1,68 @@
-import random
 from datetime import datetime, timedelta
 
-
-def generate_bus_schedule(start_time_str, end_time_str, interval_minutes=10, jitter_seconds=60):
-    """
-    Generates a list of simulated bus departure times with optional jitter.
-
-    Args:
-        start_time_str (str): Start of the time window in format 'HH:MM'
-        end_time_str (str): End of the time window in format 'HH:MM'
-        interval_minutes (int): Planned interval between buses
-        jitter_seconds (int): Max random deviation (+/-) in seconds
-
-    Returns:
-        List[datetime]: List of bus departure times with jitter
-    """
-    time_format = "%H:%M"
-    start_time = datetime.strptime(start_time_str, time_format)
-    end_time = datetime.strptime(end_time_str, time_format)
-
-    bus_times = []
-    current = start_time
-
-    while current <= end_time:
-        jitter = timedelta(seconds=random.randint(-jitter_seconds, jitter_seconds))
-        departure_time = current + jitter
-        bus_times.append(departure_time)
-        current += timedelta(minutes=interval_minutes)
-    
-    return sorted(bus_times)
-
-
 def calculate_late_probability(
-    departure_time_str,
-    bus_schedule,
-    walk_to_stop_sec=300,
-    walk_from_stop_sec=240,
-    ride_mean_min=20,
-    ride_std_min=3,
-    meeting_time_str="09:05",
-    n_simulations=1000
-):
+    bus_times: list,
+    walk_to_bus: int = 300,
+    walk_to_work: int = 240,
+    meeting_time: str = '09:05:00',
+    start_check: str = '07:00',
+    end_check: str = '09:00'
+) -> list:
     """
-    Simulates the probability that Rita is late to her meeting
-    given a home departure time.
+    Calculates probability of being late to a meeting depending on departure time.
 
     Args:
-        departure_time_str (str): Time Rita leaves home (e.g. "08:10")
-        bus_schedule (List[datetime]): Simulated list of bus departure times
-        walk_to_stop_sec (int): Seconds from home to the stop
-        walk_from_stop_sec (int): Seconds from stop to the office
-        ride_mean_min (int): Average ride duration in minutes
-        ride_std_min (int): Std deviation of ride time in minutes
-        meeting_time_str (str): Meeting time (e.g. "09:05")
-        n_simulations (int): Number of Monte Carlo simulations
+        bus_times (list): List of [departure_time (time), arrival_time (time)] pairs
+        walk_to_bus (int): Time in seconds to reach bus stop
+        walk_to_work (int): Time in seconds from bus stop to office
+        meeting_time (str): Meeting start time (format "HH:MM:SS")
+        start_check (str): Start of home departure range (format "HH:MM")
+        end_check (str): End of home departure range (format "HH:MM")
 
     Returns:
-        float: Probability (0–1) that Rita is late
+        list: [x_axis_labels, probabilities]
     """
-    time_format = "%H:%M"
-    departure_time = datetime.strptime(departure_time_str, time_format)
-    meeting_time = datetime.strptime(meeting_time_str, time_format)
+    walk_to_bus = timedelta(seconds=walk_to_bus)
+    walk_to_work = timedelta(seconds=walk_to_work)
+    meeting_dt = datetime.strptime(meeting_time, "%H:%M:%S")
 
-    late_count = 0
+    start_dt = datetime.strptime(start_check, "%H:%M")
+    end_dt = datetime.strptime(end_check, "%H:%M")
+    total_minutes = int((end_dt - start_dt).total_seconds() // 60)
 
-    for _ in range(n_simulations):
-        # Step 1: Walk from home to stop
-        arrival_at_stop = departure_time + timedelta(seconds=walk_to_stop_sec)
+    x_axis = []
+    y_axis = []
+    last_chance = None
+    insert_index = None
 
-        # Step 2: Find first bus that departs after arrival at stop
-        next_bus = next((b for b in bus_schedule if b >= arrival_at_stop), None)
+    for minute in range(total_minutes + 1):
+        leave_dt = start_dt + timedelta(minutes=minute)
+        arrive_stop = leave_dt + walk_to_bus
 
-        if next_bus is None:
-            late_count += 1  # No bus available
-            continue
+        # Find next available bus
+        bus_found = False
+        for dep_time, arr_time in bus_times:
+            dep_dt = datetime.combine(leave_dt.date(), dep_time)
+            arr_dt = datetime.combine(leave_dt.date(), arr_time)
+            if dep_dt >= arrive_stop:
+                final_arrival = arr_dt + walk_to_work
+                bus_found = True
+                break
 
-        # Step 3: Simulate ride duration
-        ride_duration = max(0, random.gauss(ride_mean_min, ride_std_min))
-        ride_time = timedelta(minutes=ride_duration)
+        probability = 1 if not bus_found or final_arrival > meeting_dt else 0
 
-        # Step 4: Walk from stop to meeting room
-        total_arrival = next_bus + ride_time + timedelta(seconds=walk_from_stop_sec)
+        x_label = leave_dt.strftime("%H:%M")
+        x_axis.append(x_label)
+        y_axis.append(probability)
 
-        if total_arrival > meeting_time:
-            late_count += 1
+        if probability == 0:
+            last_chance = leave_dt
+        elif len(y_axis) > 1 and y_axis[-2] == 0:
+            insert_index = len(y_axis)
 
-    return late_count / n_simulations
+    # Insert threshold edge point
+    if insert_index is not None and last_chance is not None:
+        x_axis.insert(insert_index, (last_chance + timedelta(seconds=1)).strftime("%H:%M"))
+        y_axis.insert(insert_index, 1)
+
+    return [x_axis, y_axis]

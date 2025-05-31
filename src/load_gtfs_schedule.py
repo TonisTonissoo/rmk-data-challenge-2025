@@ -4,13 +4,15 @@ import requests
 import pandas as pd
 from datetime import datetime
 
+# Config paths and URL
 URL = "https://peatus.ee/gtfs/gtfs.zip"
 ZIPFILE = "bus_data.zip"
 DATA_FOLDER_PATH = "bus_data"
-STOPS_PATH = DATA_FOLDER_PATH + "/stops.txt"
-STOP_TIMES_PATH = DATA_FOLDER_PATH + "/stop_times.txt"
-TRIPS_PATH = DATA_FOLDER_PATH + "/trips.txt"
-ROUTES_PATH = DATA_FOLDER_PATH + "/routes.txt"
+STOPS_PATH = os.path.join(DATA_FOLDER_PATH, "stops.txt")
+STOP_TIMES_PATH = os.path.join(DATA_FOLDER_PATH, "stop_times.txt")
+TRIPS_PATH = os.path.join(DATA_FOLDER_PATH, "trips.txt")
+ROUTES_PATH = os.path.join(DATA_FOLDER_PATH, "routes.txt")
+CALENDAR_PATH = os.path.join(DATA_FOLDER_PATH, "calendar.txt")
 
 def download_and_extract_gtfs():
     if not os.path.exists(ZIPFILE):
@@ -24,15 +26,14 @@ def download_and_extract_gtfs():
     print("GTFS data downloaded and extracted.")
 
 def load_line8_zoo_to_toompark_schedule():
-    download_and_extract_gtfs()
-
+    # Load GTFS files
     stops = pd.read_csv(STOPS_PATH)
-    trips = pd.read_csv(TRIPS_PATH)
     stop_times = pd.read_csv(STOP_TIMES_PATH)
+    trips = pd.read_csv(TRIPS_PATH)
     routes = pd.read_csv(ROUTES_PATH)
     calendar = pd.read_csv(CALENDAR_PATH)
 
-    # 🎯 Filter for weekday-only service_ids
+    # Filter for weekday services
     weekday_services = calendar[
         (calendar["monday"] == 1) &
         (calendar["tuesday"] == 1) &
@@ -43,57 +44,58 @@ def load_line8_zoo_to_toompark_schedule():
         (calendar["sunday"] == 0)
     ]["service_id"].tolist()
 
-    # 🔍 Filter route line 8
+    # Get all route_ids for short name 8
     route_8 = routes[routes["route_short_name"] == "8"]
     if route_8.empty:
-        raise ValueError("Line 8 not found in GTFS data.")
-    route_id = route_8.iloc[0]["route_id"]
+        print("Route 8 not found.")
+        return []
 
-    # 🎫 Filter trips that match route 8 and weekday services
+    print(f"Found {len(route_8)} route(s) for line 8")
+
+    # Filter all matching trips for any of these route_ids
     trips_8 = trips[
-        (trips["route_id"] == route_id) &
+        (trips["route_id"].isin(route_8["route_id"])) &
         (trips["service_id"].isin(weekday_services))
     ]
 
-    # 🚌 Join trips with stop_times
+    if trips_8.empty:
+        print("No weekday trips found for route 8.")
+        return []
+
+    # Merge stop_times with trips
     merged = stop_times.merge(trips_8, on="trip_id")
 
-    # 🔍 Get stop_ids for Zoo and Toompark
-    zoo_stop = stops[stops["stop_name"].str.contains("Zoo", case=False, na=False)]
-    toompark_stop = stops[stops["stop_name"].str.contains("Toompark", case=False, na=False)]
-    if zoo_stop.empty or toompark_stop.empty:
-        raise ValueError("Could not find Zoo or Toompark stops.")
+    # Find all Zoo and Toompark stop_ids
+    zoo_ids = stops[stops["stop_name"].str.contains("Zoo", case=False, na=False)]["stop_id"].unique().tolist()
+    toompark_ids = stops[stops["stop_name"].str.contains("Toompark", case=False, na=False)]["stop_id"].unique().tolist()
 
-    zoo_id = zoo_stop.iloc[0]["stop_id"]
-    toompark_id = toompark_stop.iloc[0]["stop_id"]
+    print(f"Zoo stop_ids: {zoo_ids}")
+    print(f"Toompark stop_ids: {toompark_ids}")
 
-    # ✅ Keep trips that go from Zoo → Toompark in correct order
-    trips_with_both = merged[merged["stop_id"].isin([zoo_id, toompark_id])]
-    grouped = trips_with_both.groupby("trip_id")
+    # Go through all trips and find those with both Zoo and Toompark in correct order
+    result = []
+    for trip_id, group in merged.groupby("trip_id"):
+        group_sorted = group.sort_values("stop_sequence")
+        stop_ids = group_sorted["stop_id"].tolist()
 
-    valid_trip_ids = []
-    for trip_id, group in grouped:
-        stops_in_trip = group.sort_values("stop_sequence")
-        stop_ids = stops_in_trip["stop_id"].tolist()
-        if zoo_id in stop_ids and toompark_id in stop_ids:
-            if stop_ids.index(zoo_id) < stop_ids.index(toompark_id):
-                valid_trip_ids.append(trip_id)
+        zoo_index = next((i for i, sid in enumerate(stop_ids) if sid in zoo_ids), None)
+        toompark_index = next((i for i, sid in enumerate(stop_ids) if sid in toompark_ids), None)
 
-    # 🕒 Get Zoo departure times for valid trips
-    zoo_departures = merged[
-        (merged["trip_id"].isin(valid_trip_ids)) &
-        (merged["stop_id"] == zoo_id)
-    ]
+        if zoo_index is not None and toompark_index is not None and zoo_index < toompark_index:
+            try:
+                zoo_row = group_sorted.iloc[zoo_index]
+                toompark_row = group_sorted.iloc[toompark_index]
 
-    # ⏱️ Keep times between 08:00–09:00
-    times = []
-    for t in zoo_departures["departure_time"]:
-        try:
-            time_obj = datetime.strptime(t, "%H:%M:%S")
-            if time_obj.time() >= datetime.strptime("08:00", "%H:%M").time() and \
-               time_obj.time() <= datetime.strptime("09:00", "%H:%M").time():
-                times.append(time_obj)
-        except:
-            continue
+                dep_time = pd.to_datetime(zoo_row["departure_time"], format="%H:%M:%S").time()
+                arr_time = pd.to_datetime(toompark_row["arrival_time"], format="%H:%M:%S").time()
+                result.append((dep_time, arr_time))
+            except Exception:
+                continue
 
-    return sorted(times)
+    # Filter trips by departure time (e.g. 07:00 to 09:00)
+    morning_start = datetime.strptime("07:00", "%H:%M").time()
+    morning_end = datetime.strptime("09:00", "%H:%M").time()
+    result = [pair for pair in result if morning_start <= pair[0] <= morning_end]
+
+    print(f"Found {len(result)} valid Zoo → Toompark trips between 07:00 and 09:00.")
+    return sorted(result)
