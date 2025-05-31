@@ -73,7 +73,7 @@ This will:
 
 ### Final Plot
 
-![late_probability_plot](https://github.com/user-attachments/assets/d5e7a73f-5d66-40e0-9a46-1d3633d91842)
+![late_probability_plot](https://github.com/user-attachments/assets/cb5cbfbb-2012-473e-88f6-d4967aec5c8c)
 
 ---
 
