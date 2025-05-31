@@ -43,7 +43,11 @@ def main():
     print("\nResults saved to data/processed/late_probabilities.csv.")
 
     # 5. Plot results AFTER file is saved
-    plot_late_probabilities("data/processed/late_probabilities.csv")
+    plot_late_probabilities(
+    "data/processed/late_probabilities.csv",
+    save_path="data/processed/late_probability_plot.png"
+    )
+
 
 if __name__ == "__main__":
     main()
