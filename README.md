@@ -11,7 +11,6 @@ This project simulates the probability of being late to a 9:05 AM meeting when c
 - Simulates lateness probability based on home departure time
 - Plots a clear time-vs-lateness probability graph
 - Highlights the last safe departure time
-- Includes unit tests for core simulation logic
 
 ---
 
@@ -55,8 +54,6 @@ This will:
 │   ├── simulate.py             # Logic to calculate lateness probability
 │   ├── load_gtfs_schedule.py  # Load and filter GTFS data for relevant trips
 │   └── plot_results.py        # Generate and annotate the plot
-├── tests/
-│   └── test_simulate.py       # Unit tests for core logic
 ├── data/
 │   └── processed/             # Output files (CSV + plot)
 ├── requirements.txt
