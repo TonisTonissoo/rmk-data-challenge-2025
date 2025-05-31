@@ -74,9 +74,10 @@ This will:
   - Dashed vertical line marking the meeting time (09:05)
   - X-axis ticks every 15 minutes
 
-### Example Plot
+### Final Plot
 
-![Late probability plot](data/processed/late_probability_plot.png)
+![late_probability_plot](https://github.com/user-attachments/assets/d5e7a73f-5d66-40e0-9a46-1d3633d91842)
+
 ---
 
 ## Configuration
