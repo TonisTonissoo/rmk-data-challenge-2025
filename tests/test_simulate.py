@@ -5,6 +5,21 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pytest
 from src.simulate import generate_bus_schedule, calculate_late_probability
 
+
+"""
+Unit tests for simulation functions used to model lateness to a meeting based on public transportation.
+
+This test module includes:
+- Tests for correct generation of bus schedules with and without jitter.
+- Tests for lateness probability calculation using different bus schedule scenarios:
+  * A normal case where buses are frequent and lateness is rare.
+  * An edge case where no buses are available, ensuring lateness is guaranteed.
+
+Functions tested:
+- generate_bus_schedule
+- calculate_late_probability
+"""
+
 def test_generate_bus_schedule_length():
     buses = generate_bus_schedule("08:00", "08:30", interval_minutes=10, jitter_seconds=0)
     assert len(buses) == 4  # 08:00, 08:10, 08:20, 08:30

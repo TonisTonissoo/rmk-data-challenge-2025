@@ -15,6 +15,12 @@ ROUTES_PATH = os.path.join(DATA_FOLDER_PATH, "routes.txt")
 CALENDAR_PATH = os.path.join(DATA_FOLDER_PATH, "calendar.txt")
 
 def download_and_extract_gtfs():
+    """
+    Downloads and extracts the GTFS (General Transit Feed Specification) data
+    from the specified URL if not already downloaded.
+
+    Creates a zip file locally and extracts its contents into the 'bus_data' folder.
+    """
     if not os.path.exists(ZIPFILE):
         print("Downloading GTFS data...")
         r = requests.get(URL)
@@ -26,6 +32,15 @@ def download_and_extract_gtfs():
     print("GTFS data downloaded and extracted.")
 
 def load_line8_zoo_to_toompark_schedule():
+    """
+    Loads and filters GTFS data for weekday trips on Tallinn's bus line 8
+    from Zoo to Toompark.
+
+    Returns:
+        list of tuple: A list of (departure_time, arrival_time) pairs as datetime.time
+                       objects for trips that go from Zoo to Toompark in correct order
+                       and depart between 07:00 and 09:00.
+    """
     # Load GTFS files
     stops = pd.read_csv(STOPS_PATH)
     stop_times = pd.read_csv(STOP_TIMES_PATH)

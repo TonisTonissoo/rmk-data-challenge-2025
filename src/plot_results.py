@@ -4,7 +4,16 @@ from datetime import datetime, timedelta
 
 def plot_late_probabilities(csv_path, save_path=None):
     """
-    Plots the probability of being late based on departure time.
+    Plots the probability of being late to a meeting based on departure time from home.
+
+    This function reads a CSV file containing departure times and corresponding late probabilities,
+    then visualizes the data as a line chart. It also highlights the last departure time
+    that results in on-time arrival and marks the fixed meeting time with a vertical dashed line.
+
+    Args:
+        csv_path (str): Path to the CSV file with columns 'departure_time' (HH:MM format) and
+                        'late_probability' (float between 0 and 1).
+        save_path (str, optional): If provided, saves the resulting plot to the given file path.
     """
     df = pd.read_csv(csv_path)
 

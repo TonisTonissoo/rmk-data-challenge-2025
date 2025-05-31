@@ -6,6 +6,21 @@ from src.load_gtfs_schedule import load_line8_zoo_to_toompark_schedule
 import os
 
 def main():
+    """
+    Main pipeline for computing and visualizing the probability of being late
+    when departing from home to reach a 09:05 meeting using GTFS bus schedules.
+
+    Steps:
+        1. Load GTFS data for line 8 from Zoo to Toompark.
+        2. Compute lateness probabilities based on walking and bus times.
+        3. Save results to CSV.
+        4. Print a summary of schedule entries.
+        5. Generate and save a visual plot of lateness probabilities.
+
+    Note:
+        Walking times and meeting time are hardcoded. Assumes GTFS data is
+        available or downloadable from peatus.ee.
+    """
     # 1. Load bus schedule from GTFS (Zoo → Toompark, line 8)
     print("Loading GTFS schedule for bus line 8 Zoo → Toompark...")
     bus_schedule = load_line8_zoo_to_toompark_schedule()
